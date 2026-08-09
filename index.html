@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plataforma de Compras - Casa</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+    <!-- iOS -->
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Compras">
     <style>
         * {
             margin: 0;
@@ -236,6 +248,89 @@
             font-size: 0.95em;
         }
 
+        .extra-section {
+            border-left-color: #43a047;
+        }
+
+        .btn-add-extra {
+            background: #43a047;
+            color: white;
+            padding: 10px 20px;
+            font-size: 0.85em;
+            border-radius: 8px;
+            text-transform: none;
+            letter-spacing: normal;
+            box-shadow: 0 2px 8px rgba(67, 160, 71, 0.3);
+        }
+
+        .btn-add-extra:hover {
+            background: #388e3c;
+            transform: translateY(-1px);
+        }
+
+        .extra-item {
+            display: grid;
+            grid-template-columns: 2fr 120px 120px 140px 44px;
+            gap: 15px;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .extra-item:last-child {
+            border-bottom: none;
+        }
+
+        .extra-item-name {
+            padding: 12px 12px;
+            border: 2px solid #d0d0d0;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            width: 100%;
+        }
+
+        .extra-item-name:focus {
+            outline: none;
+            border-color: #43a047;
+            box-shadow: 0 0 0 4px rgba(67, 160, 71, 0.1);
+        }
+
+        .extra-item-total {
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-align: right;
+            font-size: 0.95em;
+        }
+
+        .btn-remove-extra {
+            background: #f8d7da;
+            color: #721c24;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 1em;
+            text-transform: none;
+            letter-spacing: normal;
+            box-shadow: none;
+            width: 44px;
+            height: 44px;
+            line-height: 1;
+        }
+
+        .btn-remove-extra:hover {
+            background: #f5c6cb;
+        }
+
+        .empty-extra-msg {
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-style: italic;
+        }
+
         .summary-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -380,6 +475,19 @@
                 padding-left: 0;
             }
 
+            .extra-item {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .btn-remove-extra {
+                width: 100%;
+            }
+
+            .item-header {
+                flex-wrap: wrap;
+            }
+
             button {
                 min-width: auto;
                 flex: 1;
@@ -450,6 +558,14 @@
 
             <form id="shoppingForm">
                 <div class="shopping-list" id="shoppingList"></div>
+
+                <div class="item-group extra-section">
+                    <div class="item-header">
+                        <span class="item-name">➕ Outros Produtos</span>
+                        <button type="button" class="btn-add-extra" onclick="addExtraItem()">+ Adicionar Produto</button>
+                    </div>
+                    <div class="sub-items" id="extraItemsList"></div>
+                </div>
 
                 <div class="summary-section">
                     <div class="summary-row">
@@ -528,6 +644,8 @@
             { name: 'Iogurte', type: 'simple' }
         ];
 
+        let extraItemCount = 0;
+
         function getQuantityOptions() {
             const options = [];
             for (let i = 0; i <= 30; i++) {
@@ -604,6 +722,77 @@
             });
         }
 
+        function updateEmptyExtraMsg() {
+            const list = document.getElementById('extraItemsList');
+            const hasRows = list.querySelector('.extra-item') !== null;
+            let msg = list.querySelector('.empty-extra-msg');
+            if (!hasRows) {
+                if (!msg) {
+                    msg = document.createElement('div');
+                    msg.className = 'empty-extra-msg';
+                    msg.textContent = 'Nenhum produto extra adicionado ainda.';
+                    list.appendChild(msg);
+                }
+            } else if (msg) {
+                msg.remove();
+            }
+        }
+
+        function addExtraItem() {
+            const list = document.getElementById('extraItemsList');
+            const msg = list.querySelector('.empty-extra-msg');
+            if (msg) msg.remove();
+
+            const id = extraItemCount++;
+            const qtyOptionsHTML = getQuantityOptions().map(qty =>
+                `<option value="${qty}"${qty === 0 ? ' selected' : ''}>${qty}</option>`
+            ).join('');
+
+            const row = document.createElement('div');
+            row.className = 'extra-item';
+            row.dataset.extraId = id;
+            row.innerHTML = `
+                <input type="text" class="extra-item-name" name="extra_name_${id}" placeholder="Nome do produto" maxlength="60">
+                <select class="qty-select qty-input-extra" name="extra_qty_${id}" data-extraid="${id}">
+                    ${qtyOptionsHTML}
+                </select>
+                <input type="number" class="price-input" name="extra_price_${id}" data-extraid="${id}" step="0.01" min="0" value="0" placeholder="0.00">
+                <div class="extra-item-total" id="extra_total_${id}">R$ 0,00</div>
+                <button type="button" class="btn-remove-extra" onclick="removeExtraItem(${id})" aria-label="Remover produto">✕</button>
+            `;
+            list.appendChild(row);
+
+            row.querySelectorAll('select, input').forEach(input => {
+                input.addEventListener('change', calculateTotals);
+                input.addEventListener('input', calculateTotals);
+            });
+
+            row.querySelector('.extra-item-name').focus();
+        }
+
+        function removeExtraItem(id) {
+            const row = document.querySelector(`.extra-item[data-extra-id="${id}"]`);
+            if (row) row.remove();
+            updateEmptyExtraMsg();
+            calculateTotals();
+        }
+
+        function getExtraItemsData() {
+            const rows = document.querySelectorAll('.extra-item');
+            const result = [];
+            rows.forEach(row => {
+                const id = row.dataset.extraId;
+                const nameInput = row.querySelector(`input[name="extra_name_${id}"]`);
+                const qtySelect = row.querySelector(`select[name="extra_qty_${id}"]`);
+                const priceInput = row.querySelector(`input[name="extra_price_${id}"]`);
+                const name = nameInput ? nameInput.value.trim() : '';
+                const qty = qtySelect ? (parseFloat(qtySelect.value) || 0) : 0;
+                const price = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
+                result.push({ id, name, qty, price, total: qty * price });
+            });
+            return result;
+        }
+
         function calculateTotals() {
             let grandTotal = 0;
             let totalItems = 0;
@@ -652,6 +841,18 @@
                 }
             });
 
+            // Soma os produtos extras (fora da lista padrão)
+            getExtraItemsData().forEach(extra => {
+                const totalEl = document.getElementById(`extra_total_${extra.id}`);
+                if (totalEl) {
+                    totalEl.textContent = formatCurrency(extra.total);
+                }
+                if (extra.qty > 0) {
+                    totalItems += extra.qty;
+                    grandTotal += extra.total;
+                }
+            });
+
             document.getElementById('totalItems').textContent = totalItems;
             document.getElementById('grandTotal').textContent = formatCurrency(grandTotal);
         }
@@ -662,6 +863,8 @@
 
         function resetForm() {
             document.getElementById('shoppingForm').reset();
+            document.getElementById('extraItemsList').innerHTML = '';
+            updateEmptyExtraMsg();
             calculateTotals();
             hideMessage();
         }
@@ -734,6 +937,29 @@
                 }
             });
 
+            // Produtos extras (fora da lista padrão)
+            let hasInvalidExtra = false;
+            getExtraItemsData().forEach(extra => {
+                if (extra.qty > 0) {
+                    if (!extra.name) {
+                        hasInvalidExtra = true;
+                        return;
+                    }
+                    collectItems.push({
+                        name: extra.name,
+                        quantity: extra.qty,
+                        price: extra.price,
+                        total: extra.total
+                    });
+                    grandTotal += extra.total;
+                }
+            });
+
+            if (hasInvalidExtra) {
+                showMessage('⚠️ Preencha o nome de todos os produtos extras adicionados!', 'error');
+                return;
+            }
+
             if (collectItems.length === 0) {
                 showMessage('⚠️ Adicione pelo menos um item!', 'error');
                 return;
@@ -768,6 +994,16 @@
 
         // Inicializar formulário ao carregar
         initializeForm();
+        updateEmptyExtraMsg();
+
+        // Registrar o Service Worker (permite instalar como app e uso offline)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => console.log('Service Worker registrado:', reg.scope))
+                    .catch((err) => console.error('Erro ao registrar Service Worker:', err));
+            });
+        }
     </script>
 </body>
 </html>
