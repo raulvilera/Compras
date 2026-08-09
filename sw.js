@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plataforma-compras-v1';
+const CACHE_NAME = 'plataforma-compras-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -56,4 +56,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-
